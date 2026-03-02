@@ -21,18 +21,35 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
-    canvas {
+    #matrix {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
+      z-index: 1;
+      opacity: 1;
+      transition: opacity 0.6s ease;
+    }
+
+    #matrix.hidden {
+      opacity: 0;
+    }
+
+    #stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
       opacity: 0;
       transition: opacity 0.4s ease;
     }
 
-    canvas.active {
+    #stars.active {
       opacity: 1;
     }
 
@@ -100,6 +117,7 @@
   </style>
 </head>
 <body>
+  <canvas id="matrix"></canvas>
   <canvas id="stars"></canvas>
 
   <div class="heading-wrap" id="heading">
@@ -108,21 +126,72 @@
   </div>
 
   <script>
-    const canvas = document.getElementById('stars');
-    const ctx = canvas.getContext('2d');
+    // ── Matrix rain ───────────────────────────────────────────────────────────
+    const matrixCanvas = document.getElementById('matrix');
+    const mctx = matrixCanvas.getContext('2d');
+
+    const SYMBOLS = Array.from(
+      'αβγδεζηθλμξπρστφψω' +
+      '∑∏∫∂∇√∞∈∉∪∩⊂⊃≈≠≤≥±×÷' +
+      '∀∃ℕℝℂℤΔΩΦΨΛΣ∮⊕' +
+      '012345689'
+    );
+    const FONT_SIZE = 16;
+    let mW, mH, drops, dropSpeeds;
+
+    function initMatrix() {
+      mW = matrixCanvas.width = window.innerWidth;
+      mH = matrixCanvas.height = window.innerHeight;
+      const cols = Math.floor(mW / FONT_SIZE);
+      drops = Array.from({ length: cols }, () => Math.random() * -(mH / FONT_SIZE));
+      dropSpeeds = Array.from({ length: cols }, () => 0.25 + Math.random() * 0.65);
+    }
+
+    function drawMatrix() {
+      // Fade previous frame — lower value = longer tail
+      mctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+      mctx.fillRect(0, 0, mW, mH);
+
+      mctx.font = `${FONT_SIZE}px "Courier New", monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+        const x = i * FONT_SIZE;
+        const y = Math.floor(drops[i]) * FONT_SIZE;
+
+        // Head character slightly brighter/whiter
+        const headAlpha = 0.55 + Math.random() * 0.35;
+        mctx.fillStyle = `rgba(0, 220, 130, ${headAlpha})`;
+        mctx.fillText(char, x, y);
+
+        drops[i] += dropSpeeds[i];
+
+        // Reset column when it exits the bottom
+        if (drops[i] * FONT_SIZE > mH && Math.random() > 0.97) {
+          drops[i] = Math.random() * -40;
+          dropSpeeds[i] = 0.25 + Math.random() * 0.65;
+        }
+      }
+
+      requestAnimationFrame(drawMatrix);
+    }
+
+    // ── Hyperspace stars ──────────────────────────────────────────────────────
+    const starsCanvas = document.getElementById('stars');
+    const ctx = starsCanvas.getContext('2d');
     const heading = document.getElementById('heading');
 
     let W, H, cx, cy;
     let stars = [];
     let animId = null;
     let active = false;
-    let progress = 0; // 0 = idle, 1 = full warp
+    let progress = 0;
 
     const STAR_COUNT = 600;
 
     function resize() {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = window.innerHeight;
+      W = starsCanvas.width = window.innerWidth;
+      H = starsCanvas.height = window.innerHeight;
       cx = W / 2;
       cy = H / 2;
     }
@@ -134,7 +203,6 @@
     function initStars() {
       stars = [];
       for (let i = 0; i < STAR_COUNT; i++) {
-        // Spread stars across the full canvas (not just from center)
         const angle = Math.random() * Math.PI * 2;
         const radius = Math.random() * Math.max(W, H) * 0.6 + 10;
         stars.push({
@@ -149,29 +217,20 @@
     }
 
     function pickColor() {
-      const palette = [
-        '#ffffff',
-        '#c8e6ff',
-        '#a0ccff',
-        '#ffe8c8',
-        '#ffd0a0',
-      ];
+      const palette = ['#ffffff', '#c8e6ff', '#a0ccff', '#ffe8c8', '#ffd0a0'];
       return palette[Math.floor(Math.random() * palette.length)];
     }
 
     function drawFrame() {
       ctx.clearRect(0, 0, W, H);
 
-      // Ease progress toward target
       const target = active ? 1 : 0;
       progress += (target - progress) * 0.04;
-
-      const speed = progress * progress; // ease in
+      const speed = progress * progress;
 
       for (const s of stars) {
         s.radius += s.speed * speed * 18;
 
-        // Wrap around if off screen
         const maxR = Math.sqrt(cx * cx + cy * cy) * 1.6;
         if (s.radius > maxR) {
           s.radius = 5;
@@ -180,12 +239,9 @@
 
         const x = cx + Math.cos(s.angle) * s.radius;
         const y = cy + Math.sin(s.angle) * s.radius;
-
-        // Streak length grows with speed
         const streakLen = speed * s.speed * 30;
         const x0 = cx + Math.cos(s.angle) * (s.radius - streakLen);
         const y0 = cy + Math.sin(s.angle) * (s.radius - streakLen);
-
         const alpha = Math.min(1, s.brightness * (0.4 + speed * 0.6));
 
         if (streakLen > 1) {
@@ -206,11 +262,9 @@
         }
       }
 
-      // Keep animating while transitioning
       if (Math.abs(progress - target) > 0.001 || active) {
         animId = requestAnimationFrame(drawFrame);
       } else {
-        // Fully idle — stop loop
         animId = null;
       }
     }
@@ -224,18 +278,16 @@
 
     function startWarp() {
       active = true;
-      canvas.classList.add('active');
-      if (!animId) {
-        animId = requestAnimationFrame(drawFrame);
-      }
+      starsCanvas.classList.add('active');
+      matrixCanvas.classList.add('hidden');
+      if (!animId) animId = requestAnimationFrame(drawFrame);
     }
 
     function stopWarp() {
       active = false;
-      canvas.classList.remove('active');
-      if (!animId) {
-        animId = requestAnimationFrame(drawFrame);
-      }
+      starsCanvas.classList.remove('active');
+      matrixCanvas.classList.remove('hidden');
+      if (!animId) animId = requestAnimationFrame(drawFrame);
     }
 
     heading.addEventListener('mouseenter', startWarp);
@@ -244,10 +296,13 @@
     window.addEventListener('resize', () => {
       resize();
       initStars();
+      initMatrix();
     });
 
     resize();
     initStars();
+    initMatrix();
+    drawMatrix();
   </script>
 </body>
 </html>
