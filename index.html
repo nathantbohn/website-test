@@ -114,11 +114,22 @@
     .heading-wrap:hover .subtitle {
       color: rgba(196, 181, 253, 0.7);
     }
+
+    #orbiter {
+      position: fixed;
+      width: clamp(2rem, 6vw, 5rem);
+      height: auto;
+      transform: translate(-50%, -50%);
+      z-index: 11;
+      pointer-events: none;
+      filter: drop-shadow(0 0 6px rgba(0, 220, 130, 0.5));
+    }
   </style>
 </head>
 <body>
   <canvas id="matrix"></canvas>
   <canvas id="stars"></canvas>
+  <img id="orbiter" src="assets/sean.png.png" alt="" />
 
   <div class="heading-wrap" id="heading">
     <h1>SeanSimulator 2.0</h1>
@@ -293,6 +304,28 @@
     heading.addEventListener('mouseenter', startWarp);
     heading.addEventListener('mouseleave', stopWarp);
 
+    // ── Orbiting image ────────────────────────────────────────────────────────
+    const orbiter = document.getElementById('orbiter');
+    const h1El = document.querySelector('h1');
+    let orbitAngle = 0;
+
+    function updateOrbit() {
+      const rect = h1El.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      // Ellipse radii: hug the text with a small margin
+      const rx = rect.width / 2 + 38;
+      const ry = rect.height / 2 + 38;
+
+      const rad = (orbitAngle * Math.PI) / 180;
+      orbiter.style.left = (cx + rx * Math.cos(rad)) + 'px';
+      orbiter.style.top  = (cy + ry * Math.sin(rad)) + 'px';
+
+      orbitAngle = (orbitAngle + 0.4) % 360;
+      requestAnimationFrame(updateOrbit);
+    }
+
     window.addEventListener('resize', () => {
       resize();
       initStars();
@@ -303,6 +336,7 @@
     initStars();
     initMatrix();
     drawMatrix();
+    updateOrbit();
   </script>
 </body>
 </html>
