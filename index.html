@@ -44,20 +44,43 @@
       user-select: none;
     }
 
+    @keyframes marble {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     h1 {
       font-size: clamp(2.8rem, 8vw, 7rem);
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #fff;
-      transition: color 0.3s ease, text-shadow 0.3s ease;
+      transition: text-shadow 0.4s ease;
     }
 
     .heading-wrap:hover h1 {
-      color: #a8d8ff;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      background-image: linear-gradient(
+        135deg,
+        #fff     0%,
+        #38bdf8  12%,
+        #a855f7  25%,
+        #2dd4bf  38%,
+        #e879f9  52%,
+        #4facfe  65%,
+        #c4b5fd  78%,
+        #f0abfc  88%,
+        #fff     100%
+      );
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: marble 4s ease infinite;
       text-shadow:
-        0 0 20px rgba(120, 200, 255, 0.8),
-        0 0 60px rgba(80, 160, 255, 0.5),
-        0 0 120px rgba(40, 120, 255, 0.3);
+        0 0 30px rgba(168, 85, 247, 0.6),
+        0 0 70px rgba(56, 189, 248, 0.4),
+        0 0 120px rgba(232, 121, 249, 0.25);
     }
 
     .subtitle {
@@ -67,11 +90,11 @@
       letter-spacing: 0.25em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.35);
-      transition: color 0.3s ease;
+      transition: color 0.4s ease;
     }
 
     .heading-wrap:hover .subtitle {
-      color: rgba(168, 216, 255, 0.6);
+      color: rgba(196, 181, 253, 0.7);
     }
   </style>
 </head>
